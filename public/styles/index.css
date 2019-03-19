@@ -1,0 +1,55 @@
+.imgstyle{
+  max-height: 70%;
+  max-width:  30%;
+}
+.navhead{
+  font-family:sans-serif;
+  font-weight: bold;
+  font-size: 20px;
+  letter-spacing: 2px;
+  color: white !important;
+
+}
+a.navhead{
+  text-decoration: inherit;
+  color: inherit;
+
+}
+ body{
+   padding-top: 130px;
+ }
+
+ /*
+ Upload css
+ */
+ .btn-file {
+    position: relative;
+    overflow: hidden;
+}
+.btn-file input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
+}
+
+#img-upload{
+    /* width: 100%; */
+}
+/*  Upload css ends*/
+
+/* Images css */
+#imgCont div{
+  width:160px;
+  height: 160px;
+  overflow:hidden;
+}

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Face Recognition</title>
+
+  <!-- Bootstrap -->
+  <link
+  rel="stylesheet"
+  href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"
+  />
+  <link
+  rel="stylesheet"
+  href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css"
+  />
+
+  <link rel="stylesheet" type="text/css" href="styles/index.css" />
+
+  <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+  <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+  <!--[if lt IE 9]>
+  <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.2/html5shiv.js"></script>
+  <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+  <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <!-- Include all compiled plugins (below), or include individual files as needed -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+  <!-- NavBar Begins -->
+  <nav class="navbar navbar-inverse navbar-fixed-top ">
+    <div class="container">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+
+        <a class="navbar-brand navhead" href="#"
+        >FACIAL RECOGNITION USING FACE.JS & CLOUDINARY</a
+        >
+      </div>
+    </div>
+  </nav>
+  <!-- Navbar Ends  -->
+
+  <!-- Image Upload Begins -->
+  <div class="container well">
+    <div class="col-md-6">
+      <!-- <div class="form-group">
+        <label>Upload Image</label>
+        <div class="input-group">
+          <span class="input-group-btn">
+            <span class="btn btn-default btn-file">
+              Browse… <input type="file" id="imgInp" />
+            </span>
+          </span>
+          <input type="text" class="form-control" readonly />
+        </div>
+      </div> -->
+      <img id="img-upload" alt="No image selected"/>
+    </div>
+    <div class="col-md-1"></div>
+    <div class="col-md-3">
+      <!-- <div class="row">
+        <label for="upldbtn">Upload Image to Server </label>
+        <button type="button" id="upldbtn" class="btn btn-primary disabled" onclick="UploadToNodeServer();" style="width:100%">
+          <span class="navhead">Upload</span>
+        </button>
+      </div>
+      <br /> -->
+      <div class="row" id="recognizeBlock" style="visibility:hidden;">
+        <label for="recognize">Recognize Image Neural Network </label>
+        <button type="button" id="recognize" class="btn btn-success" onclick="Recognize()" style="width:100%;">
+          <span class="navhead">Recognize</span>
+        </button>
+      </div>
+
+      <div class="row table-responsive table-hover table-condensed" id="tble" style="visibility:hidden">
+        <table class="table" id="tableData"></table>
+      </div>
+    </div>
+  </div>
+  <!-- Image Upload Ends -->
+
+  <!-- Start showing images im cloudinary -->
+  <br/>
+  <h4 class="title text-center">Click on an image below to recognize</h4>
+  <br/>
+  <div class="container" id="imgCont">
+  </div>
+  <!-- End showing images im cloudinary -->
+</body>
+</html>
+
+<!-- Upload Image js -->
+<script src="js/uploadClient.js"></script>
+<!-- Socket io -->
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+var socket = io();
+
+let clickedSrc = null;
+
+function UploadToNodeServer(imgSrc) {
+  if(typeof imgSrc !== 'undefined'){
+    socket.emit("imageUpload", {
+      image: false,
+      src: imgSrc,
+    });
+  }else{
+    var buf = $("#img-upload").attr("src");
+    socket.emit("imageUpload", {
+      image: true,
+      buffer: buf,
+      format: sessionStorage.getItem("format")
+    });
+  }
+  $("#upldbtn").addClass("disabled");
+}
+
+socket.on("UploadSuccess", function(msg) {
+  if (msg === "true") {
+    alert("Image Uploaded Successfully");
+    $("#recognizeBlock").css("visibility", "visible")
+  } else {
+    alert("Error Unable to  Uploaded Image");
+    $("#upldbtn").removeClass("disabled");
+  }
+});
+
+socket.on("DownloadSuccess", function(msg) {
+  console.log("Download success")
+  $("#img-upload").attr("src", clickedSrc);
+  $("#recognizeBlock").css("visibility", "visible")
+});
+
+
+function compare(a, b) {
+  if (a.distance < b.distance) return -1;
+  if (a.distance > b.distance) return 1;
+  return 0;
+}
+function Recognize() {
+  $.ajax({
+    url: '/recognize',
+    success: function(result) {
+      callback(result, "success");
+    },
+    error: function(errorMsg) {
+      callback(errorMsg, "failure");
+    }
+  });
+}
+
+function callback(result, status) {
+  if (status === "success") {
+    result.sort(compare);
+    $("#tble").css("visibility", "visible");
+    $("#tableData").html("<tr><th>Actor</th><th>Probability</th></tr>");
+    console.log(result);
+    for (var i = 0; i < result.length; i++) {
+      if (i == 0)
+      $("#tableData").append(
+        "<tr class='success'>" +
+        "<td>" +
+        result[i].className +
+        "</td>" +
+        "<td>" +
+        Math.round((1 - result[i].distance) * 100) +
+        "%" +
+        "</td>" +
+        "</tr>"
+      );
+      else
+      $("#tableData").append(
+        "<tr>" +
+        "<td>" +
+        result[i].className +
+        "</td>" +
+        "<td>" +
+        Math.round((1 - result[i].distance) * 100) +
+        "%" +
+        "</td>" +
+        "</tr>"
+      );
+    }
+  } else {
+    console.log(result);
+    alert(result.responseJSON.msg);
+  }
+}
+
+
+//wait to recieve images
+socket.on("images", function(images) {
+  for(image of images){
+    let img = "<div class='col-lg-3 col-md-3 col-sm-3 col-xs-3'>"
+    img += "<img src = '"
+    img += image.secure_url
+    img += "'  class='img-thumbnail'>"
+    img += "</div>"
+    $("#imgCont").append(img)
+  }
+  //add event listener
+  let domImgs = document.querySelectorAll("#imgCont img")
+  for(var i = 0; i < domImgs.length; i++) {
+    domImgs[i].addEventListener('click', function(event){
+        clickedSrc = event.target.src
+        UploadToNodeServer(event.target.src)
+    }, false);
+  }
+});
+
+// set event listener to detect click and recognize
+$("#imgCont img").click(function(){
+  console.log(this.target.src)
+})
+
+</script>
